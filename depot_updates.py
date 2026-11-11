@@ -1214,6 +1214,49 @@ def render_fast_forecast(name):
     )
     if not long_term_ready:
         st.caption('Dedicated 30-day LSTM not trained for this depot yet. The existing hybrid method remains available.')
+    # Explicitly distinguish the two trained LSTM approaches for demonstrations.
+    st.markdown('### Two LSTM forecasting approaches')
+    st.markdown('**LSTM 1 — Short-term:** 24-hour (96-reading) input; recursive forecasts up to 72 hours.  '
+                '**LSTM 2 — Long-term:** 60-day input; direct multi-output forecasts up to 30 days. '
+                'Longer forecasts using LSTM 1 are **hybrid**, not a third trained LSTM.')
+    st.caption('The five evaluation criteria below refer to held-out observed demand. '
+               'Different forecast horizons are not directly comparable without a matched test.')
+    try:
+        import json as _json
+        from pathlib import Path as _Path
+        _meta_file = (_Path(__file__).resolve().parent / 'models' / 'long_term_lstm' /
+                      name.replace(' ', '_').lower() / 'metadata.json')
+        _long_meta = _json.loads(_meta_file.read_text()) if _meta_file.is_file() else {}
+    except (OSError, ValueError, TypeError):
+        _long_meta = {}
+    def _show_metric(value, unit='', digits=3):
+        try:
+            return f'{float(value):,.{digits}f}{unit}' if value is not None else 'Not yet evaluated'
+        except (TypeError, ValueError):
+            return 'Not yet evaluated'
+    _long_metrics = {
+        'MAE (kW)': _show_metric(_long_meta.get('test_mae_kw'), ' kW'),
+        'RMSE (kW)': _show_metric(_long_meta.get('test_rmse_kw'), ' kW'),
+        'R²': _show_metric(_long_meta.get('test_r2')),
+        'MAPE (%)': _show_metric(_long_meta.get('test_mape_pct'), '%'),
+        'Peak demand error (kW)': _show_metric(_long_meta.get('test_peak_error_kw'), ' kW'),
+    }
+    _comparison = pd.DataFrame({
+        'Evaluation criterion': list(_long_metrics),
+        'LSTM 1 · 72 h': ['Not yet evaluated on matched holdout'] * 5,
+        'LSTM 2 · 30 d': list(_long_metrics.values()),
+    })
+    st.dataframe(_comparison, hide_index=True, use_container_width=True)
+    with st.expander('How the five metrics are calculated', expanded=False):
+        st.markdown('**MAE** and **RMSE** are measured in kW (lower is better). '
+                    '**R²** measures explained variation (higher is better). '
+                    '**MAPE** is the average absolute percentage error, calculated only where '
+                    'actual demand is above 0.1 kW to avoid division by zero. '
+                    '**Peak demand error** is the mean absolute difference between the '
+                    'predicted and actual peak in each held-out 30-day window (lower is better).')
+        st.caption('The original 72-hour model needs its own held-out, matched-horizon '
+                   'evaluation before numeric results can be shown alongside the 30-day model. '
+                   'Run evaluate_long_term_lstm.py to populate the three additional 30-day metrics.')
     scenario = mode.startswith('Future demand prediction')
     future_date = None
     if scenario:
