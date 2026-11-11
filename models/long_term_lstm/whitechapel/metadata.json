@@ -1,0 +1,15 @@
+{
+  "depot": "Whitechapel",
+  "input_days": 60,
+  "output_days": 30,
+  "steps_per_day": 96,
+  "mean": 9.083571434020996,
+  "std": 13.178069114685059,
+  "test_mae_kw": 5.620032787322998,
+  "test_rmse_kw": 8.86755657196045,
+  "test_baseline_mae_kw": 7.713572025299072,
+  "test_windows": 59,
+  "train_windows": 184,
+  "validation_windows": 58,
+  "last_observation": "2022-07-25 00:00:00"
+}

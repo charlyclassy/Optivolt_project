@@ -1,0 +1,15 @@
+{
+  "depot": "Mount_Pleasant",
+  "input_days": 60,
+  "output_days": 30,
+  "steps_per_day": 96,
+  "mean": 38.468109130859375,
+  "std": 57.31795120239258,
+  "test_mae_kw": 26.56222915649414,
+  "test_rmse_kw": 43.071815490722656,
+  "test_baseline_mae_kw": 36.56314468383789,
+  "test_windows": 59,
+  "train_windows": 184,
+  "validation_windows": 58,
+  "last_observation": "2022-07-25 00:00:00"
+}

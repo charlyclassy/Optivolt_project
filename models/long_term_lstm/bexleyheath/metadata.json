@@ -1,0 +1,15 @@
+{
+  "depot": "Bexleyheath",
+  "input_days": 60,
+  "output_days": 30,
+  "steps_per_day": 96,
+  "mean": 2.7170326709747314,
+  "std": 4.585717678070068,
+  "test_mae_kw": 2.6941869258880615,
+  "test_rmse_kw": 3.824117660522461,
+  "test_baseline_mae_kw": 3.5899901390075684,
+  "test_windows": 59,
+  "train_windows": 184,
+  "validation_windows": 58,
+  "last_observation": "2022-07-25 00:00:00"
+}

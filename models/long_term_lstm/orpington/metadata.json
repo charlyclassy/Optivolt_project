@@ -1,0 +1,15 @@
+{
+  "depot": "Orpington",
+  "input_days": 60,
+  "output_days": 30,
+  "steps_per_day": 96,
+  "mean": 2.8304972648620605,
+  "std": 3.885244607925415,
+  "test_mae_kw": 2.226463556289673,
+  "test_rmse_kw": 2.910989999771118,
+  "test_baseline_mae_kw": 2.393392562866211,
+  "test_windows": 59,
+  "train_windows": 184,
+  "validation_windows": 58,
+  "last_observation": "2022-07-25 00:00:00"
+}

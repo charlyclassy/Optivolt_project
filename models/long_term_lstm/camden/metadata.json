@@ -1,0 +1,15 @@
+{
+  "depot": "Camden",
+  "input_days": 60,
+  "output_days": 30,
+  "steps_per_day": 96,
+  "mean": 4.737709045410156,
+  "std": 5.4393768310546875,
+  "test_mae_kw": 2.799525260925293,
+  "test_rmse_kw": 3.8776888847351074,
+  "test_baseline_mae_kw": 3.1864664554595947,
+  "test_windows": 59,
+  "train_windows": 184,
+  "validation_windows": 58,
+  "last_observation": "2022-07-25 00:00:00"
+}

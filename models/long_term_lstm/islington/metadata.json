@@ -1,0 +1,15 @@
+{
+  "depot": "Islington",
+  "input_days": 60,
+  "output_days": 30,
+  "steps_per_day": 96,
+  "mean": 2.5808115005493164,
+  "std": 3.797985553741455,
+  "test_mae_kw": 2.787776231765747,
+  "test_rmse_kw": 4.199482440948486,
+  "test_baseline_mae_kw": 3.23522686958313,
+  "test_windows": 59,
+  "train_windows": 184,
+  "validation_windows": 58,
+  "last_observation": "2022-07-25 00:00:00"
+}

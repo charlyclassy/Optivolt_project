@@ -1,0 +1,15 @@
+{
+  "depot": "Premier_Park",
+  "input_days": 60,
+  "output_days": 30,
+  "steps_per_day": 96,
+  "mean": 8.929757118225098,
+  "std": 15.392382621765137,
+  "test_mae_kw": 4.941690921783447,
+  "test_rmse_kw": 8.55557918548584,
+  "test_baseline_mae_kw": 6.665831565856934,
+  "test_windows": 59,
+  "train_windows": 184,
+  "validation_windows": 58,
+  "last_observation": "2022-07-25 00:00:00"
+}

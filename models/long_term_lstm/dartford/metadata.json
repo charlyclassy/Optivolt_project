@@ -1,0 +1,15 @@
+{
+  "depot": "Dartford",
+  "input_days": 60,
+  "output_days": 30,
+  "steps_per_day": 96,
+  "mean": 8.53492546081543,
+  "std": 11.096329689025879,
+  "test_mae_kw": 5.4152326583862305,
+  "test_rmse_kw": 7.305016040802002,
+  "test_baseline_mae_kw": 7.5982489585876465,
+  "test_windows": 59,
+  "train_windows": 184,
+  "validation_windows": 58,
+  "last_observation": "2022-07-25 00:00:00"
+}

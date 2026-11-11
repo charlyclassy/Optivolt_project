@@ -1,0 +1,7 @@
+Optivolt 30-day forecast update
+
+Forecast choices now include 7, 14 and 30 days.
+Long-range forecasts require 60 days of 15-minute readings (at least 95% complete).
+The first 72 hours use the saved 96-input LSTM; later horizons use the median weekday/time-of-day profile from the previous 60 days with a smooth transition.
+This is a hybrid forecast, not a retrained 5,760-input LSTM. The saved model remains unchanged.
+Replace repository root contents with archive contents; do not upload an enclosing folder.
