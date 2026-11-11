@@ -1,0 +1,32 @@
+{
+  "test_mae_kw": 0.606081620141578,
+  "test_rmse_kw": 1.3446565263650971,
+  "test_r2": 0.9244426610658352,
+  "test_mape_pct": 21.643683502949838,
+  "test_baseline_mae_kw": 3.019726514816284,
+  "recursive_72h": {
+    "test_windows": 19,
+    "observed_test_readings": 5389,
+    "test_mae_kw": 3.609163411957585,
+    "test_rmse_kw": 4.883842993236671,
+    "test_r2": -0.0038917238086229045,
+    "test_mape_pct": 60.7487510124628,
+    "test_peak_error_kw": 14.842937469482422
+  },
+  "depot": "Bexleyheath",
+  "model_kind": "short",
+  "source_real": "UKPN_OptimisePrime_Bexleyheath.csv",
+  "source_synthetic": "synthetic_training_data\\UKPN_OptimisePrime_Bexleyheath_synthetic_365d.csv",
+  "synthetic_days": 365,
+  "real_days": 390,
+  "train_real_windows": 25348,
+  "train_synthetic_windows": 34944,
+  "validation_real_windows": 5548,
+  "test_real_windows": 5578,
+  "real_train_cutoff": "2022-03-30 00:00:00",
+  "real_test_start": "2022-05-28 00:00:00",
+  "real_last_day": "2022-07-25 00:00:00",
+  "mean": 2.7170326709747314,
+  "std": 4.585717678070068,
+  "note": "Synthetic data for fitting only. Real demand with observed=0 can appear as input context, but only observed=1 real targets contribute to training loss, validation and reported test metrics. Synthetic generator provenance must be independently checked against real training cutoff. Model not activated."
+}

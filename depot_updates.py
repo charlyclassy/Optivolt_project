@@ -1173,9 +1173,12 @@ def render_fast_forecast(name):
     div[data-testid="stVerticalBlockBorderWrapper"] {border-radius:12px;}
     div[data-testid="stVerticalBlockBorderWrapper"] > div {padding-top:.65rem!important;padding-bottom:.65rem!important;}
     div[data-testid="stRadio"] [role="radiogroup"] {gap:1rem!important;}
-    .ov-hero {background:linear-gradient(110deg,#12366B,#126A91 67%,#078D92);color:#fff;
+    .ov-hero {background:#082D5C;color:#fff;
       border-radius:16px;padding:17px 23px;margin:0 0 9px;box-shadow:0 8px 22px rgba(14,53,100,.16);}
-    .ov-hero h1 {font-size:1.85rem!important;color:#fff!important;margin:0 0 4px!important;line-height:1.1!important;}
+    .ov-hero h1 {font-size:1.85rem!important;color:#fff!important;background:transparent!important;margin:0 0 4px!important;line-height:1.1!important;display:flex;align-items:center;gap:12px;}
+    .ov-hero h1 span {color:#fff!important;background:transparent!important;-webkit-text-fill-color:#fff!important;}
+    .ov-hero h1 svg {width:27px;height:34px;flex:none;fill:#fff;display:block;}
+    .ov-hero h1::selection,.ov-hero h1 span::selection {background:transparent;color:#fff;}
     .ov-hero p {color:#eaf7ff!important;margin:0!important;font-size:.94rem;}
     .ov-section {background:linear-gradient(105deg,#163e77,#0c8290);color:#fff;
       padding:8px 13px;border-radius:10px;margin:6px 0 3px;display:flex;align-items:center;gap:10px;
@@ -1187,7 +1190,7 @@ def render_fast_forecast(name):
     .ov-period {background:#e9f2ff;border-left:4px solid #2465c8;border-radius:10px;
       padding:9px 13px;color:#17365d;margin:4px 0;font-size:.92rem;}
     </style>''', unsafe_allow_html=True)
-    st.markdown('<div class="ov-hero"><h1>⚡ Demand Forecast</h1><p>Configure demand predictions and grid capacity</p></div>', unsafe_allow_html=True)
+    st.markdown('''<div class="ov-hero"><h1><svg viewBox="0 0 24 32" aria-hidden="true"><path d="M13.9 0 1.8 17.2h8.1L7.6 32 22.2 12.4h-8.4L13.9 0z"/></svg><span>Demand Forecast</span></h1><p>Configure demand predictions and grid capacity</p></div>''', unsafe_allow_html=True)
     v = registry().get(name, {})
     st.markdown(f'<span class="ov-pill">Depot: {name} · Model: {v.get("active", "original")}</span>', unsafe_allow_html=True)
 
