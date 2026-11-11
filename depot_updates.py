@@ -1219,8 +1219,7 @@ def render_fast_forecast(name):
     st.markdown('**LSTM 1 — Short-term:** 24-hour (96-reading) input; recursive forecasts up to 72 hours.  '
                 '**LSTM 2 — Long-term:** 60-day input; direct multi-output forecasts up to 30 days. '
                 'Longer forecasts using LSTM 1 are **hybrid**, not a third trained LSTM.')
-    st.caption('The five evaluation criteria below refer to held-out observed demand. '
-               'Different forecast horizons are not directly comparable without a matched test.')
+    st.caption('The five evaluation criteria below refer to held-out observed demand.')
     try:
         import json as _json
         from pathlib import Path as _Path
@@ -1256,23 +1255,61 @@ def render_fast_forecast(name):
         'MAPE (%)': _show_metric(_short_meta.get('test_mape_pct'), '%'),
         'Peak demand error (kW)': _show_metric(_short_meta.get('test_peak_error_kw'), ' kW'),
     }
-    _comparison = pd.DataFrame({
-        'Evaluation criterion': list(_long_metrics),
-        'LSTM 1 · 72 h': list(_short_metrics.values()),
-        'LSTM 2 · 30 d': list(_long_metrics.values()),
-    })
-    st.dataframe(_comparison, hide_index=True, use_container_width=True)
+    # Side-by-side, read-only scorecards. Values come from the saved evaluation JSON.
+    # This is a display-only change: model selection and forecasting remain untouched.
+    import html as _html
+    def _metric_card(title, subtitle, values):
+        def _cell(label, value):
+            return (
+                '<div style="background:#21466f;border:1px solid #355b84;'
+                'border-radius:10px;padding:10px 12px;min-width:0;">'
+                '<div style="font-size:12px;color:#d5e6fa;">' + _html.escape(label) + '</div>'
+                '<div style="font-size:19px;font-weight:750;color:#fff;overflow-wrap:anywhere;">'
+                + _html.escape(value) + '</div></div>'
+            )
+        main = _cell('MAE · average error', values['MAE (kW)'])
+        extras = ''.join(_cell(label, values[label]) for label in (
+            'RMSE (kW)', 'R²', 'MAPE (%)', 'Peak demand error (kW)'))
+        return (
+            '<div style="background:#17365d;border:1px solid #3478f6;'
+            'border-top:4px solid #3478f6;border-radius:15px;padding:16px;'
+            'color:#fff;min-height:100%;">'
+            '<div style="font-size:19px;font-weight:750;color:#fff;">'
+            + _html.escape(title) + '</div>'
+            '<div style="font-size:13px;color:#d5e6fa;margin:3px 0 14px;">'
+            + _html.escape(subtitle) + '</div>'
+            + main + '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));'
+            'gap:8px;margin-top:8px;">' + extras + '</div></div>'
+        )
+    _left_card, _right_card = st.columns(2, gap='medium')
+    with _left_card:
+        st.markdown(_metric_card('LSTM 1 · Short-term', 'Recursive forecast · 72 hours', _short_metrics),
+                    unsafe_allow_html=True)
+    with _right_card:
+        st.markdown(_metric_card('LSTM 2 · Long-term', 'Direct forecast · 30 days', _long_metrics),
+                    unsafe_allow_html=True)
+    st.caption('**Why the evaluation matters:** These scores come from held-out UKPN demand. '
+               'Lower forecast and peak errors provide stronger evidence of accuracy, '
+               'but no score guarantees reliable future predictions.')
+    with st.expander('What do these results tell us about model confidence?', expanded=False):
+        st.markdown(
+            '- **MAE:** Average absolute error in kW. Lower is better.\n'
+            '- **RMSE:** Penalises large mistakes, particularly near the grid limit.\n'
+            '- **R²:** Measures performance against predicting average demand; negative values are a warning.\n'
+            '- **MAPE:** Percentage error; low demand can exaggerate the result.\n'
+            '- **Peak demand error:** Measures how accurately peaks are forecast, '
+            'which matters for grid-capacity warnings.'
+        )
+        st.markdown('**Confidence assessment:** Evaluate on unseen real observations, '
+                    'check for missed demand peaks and compare against a simple baseline. '
+                    'A model should not be labelled highly reliable on these metrics alone.')
     with st.expander('How the five metrics are calculated', expanded=False):
-        st.markdown('**MAE** and **RMSE** are measured in kW (lower is better). '
-                    '**R²** measures explained variation (higher is better). '
-                    '**MAPE** is the average absolute percentage error, calculated only where '
-                    'actual demand is above 0.1 kW to avoid division by zero. '
-                    '**Peak demand error** is the mean absolute difference between the '
-                    'predicted and actual peak in each held-out forecast window (lower is better).')
-        st.caption('LSTM 1 uses non-overlapping, recursive 72-hour forecasts from the final 15% '
-                   'of the continuous dataset. LSTM 2 uses overlapping 30-day windows ending '
-                   'in its held-out period. Different horizons and window sampling make these '
-                   'descriptive scores, NOT a matched head-to-head accuracy ranking. '
+        st.markdown('**MAE** is mean absolute error; **RMSE** is root mean squared error; '
+                    '**R²** compares errors with the observed mean; **MAPE** averages '
+                    'absolute percentage errors where actual demand exceeds 0.1 kW; '
+                    '**peak demand error** averages absolute differences in forecast-window peaks.')
+        st.caption('LSTM 1 is evaluated using recursive 72-hour forecasts; '
+                   'LSTM 2 is evaluated using direct 30-day forecasts. '
                    'Run evaluate_short_term_lstm.py --all to populate LSTM 1 results.')
     scenario = mode.startswith('Future demand prediction')
     future_date = None
