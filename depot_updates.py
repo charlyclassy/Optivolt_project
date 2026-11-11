@@ -1375,17 +1375,40 @@ def render_fast_forecast(name):
                      'for the selected growth assumption. The historical-profile extension is a planning '
                      'projection, not a separately trained LSTM.')
 
-    if method.startswith('Dedicated') and scenario:
-        st.warning('The dedicated 30-day LSTM currently supports forecasts immediately after the latest complete observed day only. Choose "Forecast after latest observations" to use it.')
-        return
-
+    # Always render the action, including for newly added depots and after a
+    # forecast has already been generated. Check prerequisites without loading TF.
     key = f'run_fast_forecast_{_slug(name)}'
-    if not st.session_state.get(key):
-        st.info('Choose the forecast settings and click Generate forecast. '
-                'The saved LSTM is loaded only when you request a prediction.')
-        if st.button('Generate forecast', type='primary', key=f'generate_{_slug(name)}'):
-            st.session_state[key] = True
-            st.rerun()
+    missing = []
+    source = data_path(name)
+    if source is None or not source.is_file():
+        missing.append('Upload demand observations for this depot.')
+    else:
+        try:
+            usable = _regular(observations(name))
+            if len(usable) < 97:
+                missing.append('At least 97 continuous 15-minute readings are needed.')
+            elif not method.startswith('Dedicated'):
+                try:
+                    _windows(usable)
+                except ValueError:
+                    missing.append('At least 97 consecutive 15-minute readings are needed.')
+        except (ValueError, OSError) as exc:
+            missing.append(f'Check the depot observations: {exc}')
+    if method.startswith('Dedicated'):
+        if not long_term_ready:
+            missing.append('The saved long-term LSTM 2 is unavailable for this depot.')
+    else:
+        model_path, scaler_path = active_paths(name)
+        if not model_path.is_file() or not scaler_path.is_file():
+            missing.append('No saved LSTM 1 model and scaler are available for this depot. Train and activate a compatible model in Depot Setup.')
+
+    if missing:
+        st.info('Forecast unavailable: ' + ' '.join(missing))
+    if st.button('Generate forecast', type='primary',
+                 key=f'generate_{_slug(name)}', disabled=bool(missing)):
+        st.session_state[key] = True
+        st.rerun()
+    if missing or not st.session_state.get(key):
         return
 
     try:
@@ -1403,10 +1426,24 @@ def render_fast_forecast(name):
 
         if scenario:
             st.markdown(f'<div class="ov-period"><strong>Prediction period · {hours} hours</strong> &nbsp; {pred.index[0]:%d %b %Y %H:%M} – {(pred.index[-1] + pd.Timedelta(minutes=15)):%d %b %Y %H:%M} (end exclusive)</div>', unsafe_allow_html=True)
-            st.caption('Simulation input: 96 synthetic 15-minute readings for the day immediately before '
-                       'the selected future date, derived from historical complete days on the matching '
-                       f'weekday (reference: {seed.attrs.get("historical_reference_day", "recorded data")}) '
-                       f'with a {growth_pct:+d}% demand adjustment. The saved LSTM is not retrained.')
+            if hours > 72:
+                initial_days = min(hours, 72) // 24
+                profile_days = (hours - min(hours, 72)) // 24
+                st.caption(
+                    f'**Forecast method: LSTM 1 — Hybrid forecast.** '
+                    f'A {hours // 24}-day future-demand simulation using historical depot patterns. '
+                    f'LSTM 1 predicts the first {initial_days} days, and historical demand profiles '
+                    f'estimate the remaining {profile_days} days. '
+                    f'96 synthetic 15-minute input readings initialise the forecast, '
+                    f'with a +{growth_pct}% demand adjustment. No model retraining is performed.'
+                )
+            else:
+                st.caption(
+                    'Simulation input: 96 synthetic 15-minute readings for the day immediately before '
+                    'the selected future date, derived from historical complete days on the matching '
+                    f'weekday (reference: {seed.attrs.get("historical_reference_day", "recorded data")}) '
+                    f'with a +{growth_pct}% demand adjustment. The saved LSTM is not retrained.'
+                )
         else:
             st.caption(f'Latest observed demand: {hist.index[-1]:%d %b %Y %H:%M}. '
                        'Predictions begin at the next 15-minute interval.')
