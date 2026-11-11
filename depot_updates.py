@@ -1367,13 +1367,23 @@ def render_fast_forecast(name):
             growth_pct = st.slider('Fleet-demand growth (%)', min_value=0, max_value=150,
                                    value=20, step=5, format='%d%%', key=f'future_growth_{_slug(name)}')
         with st.expander('How the future prediction is generated', expanded=False):
-            st.write('The saved LSTM uses 96 consecutive 15-minute readings (24 hours) as its fixed input. '
-                     'The forecast horizon is selected separately (up to 30 days). The first 72 hours '
-                     'use recursive LSTM predictions; the remaining period uses the previous 60 days '
-                     'of historical weekday and time-of-day demand patterns.')
-            st.write('Future inputs are derived from historical demand on matching weekdays and adjusted '
-                     'for the selected growth assumption. The historical-profile extension is a planning '
-                     'projection, not a separately trained LSTM.')
+            if method.startswith('Dedicated'):
+                st.write('LSTM 2 uses its saved long-term model to generate the 30-day forecast. '
+                         'No model retraining is performed. The displayed forecast dates and input '
+                         'history depend on the long-term model implementation.')
+            else:
+                st.write('The saved LSTM 1 is initialised with 96 synthetic 15-minute demand readings '
+                         'covering the day before the selected future date. These readings are derived '
+                         'from historical completed days on matching weekdays and adjusted for the '
+                         f'selected +{growth_pct}% fleet-demand growth assumption.')
+                if hours > 72:
+                    st.write(f'LSTM 1 recursively predicts the first 72 hours (3 days). Historical '
+                             f'demand profiles estimate the remaining {(hours - 72) // 24} days. '
+                             'This is a hybrid planning simulation, not a separately trained model.')
+                else:
+                    st.write(f'LSTM 1 recursively predicts the selected {hours}-hour period.')
+                st.write('The saved LSTM is not retrained. Synthetic inputs are simulated demand, '
+                         'not recent measured depot observations.')
 
     # Always render the action, including for newly added depots and after a
     # forecast has already been generated. Check prerequisites without loading TF.
@@ -1426,24 +1436,18 @@ def render_fast_forecast(name):
 
         if scenario:
             st.markdown(f'<div class="ov-period"><strong>Prediction period · {hours} hours</strong> &nbsp; {pred.index[0]:%d %b %Y %H:%M} – {(pred.index[-1] + pd.Timedelta(minutes=15)):%d %b %Y %H:%M} (end exclusive)</div>', unsafe_allow_html=True)
-            if hours > 72:
-                initial_days = min(hours, 72) // 24
-                profile_days = (hours - min(hours, 72)) // 24
-                st.caption(
-                    f'**Forecast method: LSTM 1 — Hybrid forecast.** '
-                    f'A {hours // 24}-day future-demand simulation using historical depot patterns. '
-                    f'LSTM 1 predicts the first {initial_days} days, and historical demand profiles '
-                    f'estimate the remaining {profile_days} days. '
-                    f'96 synthetic 15-minute input readings initialise the forecast, '
-                    f'with a +{growth_pct}% demand adjustment. No model retraining is performed.'
-                )
+            if method.startswith('Dedicated'):
+                st.caption('**Forecast method: LSTM 2 — Long-term forecast.** '
+                           'A 30-day forecast using the saved long-term model.')
+            elif hours > 72:
+                st.caption(f'**Forecast method: LSTM 1 — Hybrid forecast.** '
+                           f'A {hours // 24}-day future-demand simulation using historical depot '
+                           f'patterns and a +{growth_pct}% fleet-demand adjustment.')
             else:
-                st.caption(
-                    'Simulation input: 96 synthetic 15-minute readings for the day immediately before '
-                    'the selected future date, derived from historical complete days on the matching '
-                    f'weekday (reference: {seed.attrs.get("historical_reference_day", "recorded data")}) '
-                    f'with a +{growth_pct}% demand adjustment. The saved LSTM is not retrained.'
-                )
+                st.caption(f'**Forecast method: LSTM 1 — Short-term forecast.** '
+                           f'Future-demand simulation using historical depot patterns and '
+                           f'a +{growth_pct}% fleet-demand adjustment.')
+
         else:
             st.caption(f'Latest observed demand: {hist.index[-1]:%d %b %Y %H:%M}. '
                        'Predictions begin at the next 15-minute interval.')
