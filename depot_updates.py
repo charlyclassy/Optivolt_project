@@ -1219,15 +1219,25 @@ def render_fast_forecast(name):
 
         import long_term_lstm
         long_term_ready = long_term_lstm.model_available(name)
-        method = st.selectbox(
-            'Forecasting method',
-            ['Existing LSTM + historical profile'] +
-            (['Dedicated 30-day LSTM (trained)'] if long_term_ready else []),
-            help='The dedicated model appears only after its trained model.keras and metadata.json are present.',
-            key=f'long_term_method_{_slug(name)}',
-        )
-        if not long_term_ready:
-            st.caption('Dedicated 30-day LSTM not trained for this depot yet. The existing hybrid method remains available.')
+        # Automatically route the forecast to the model that supports its horizon.
+        # The dedicated long-term model only supports forecasts starting after
+        # the latest complete observed day, not arbitrary future-date scenarios.
+        scenario_selected = mode.startswith('Future demand prediction')
+        if hours == 720 and long_term_ready and not scenario_selected:
+            method = 'Dedicated 30-day LSTM (trained)'
+            st.success('Model selected automatically: LSTM 2 · Direct 30-day forecast')
+        elif hours == 720 and scenario_selected:
+            method = 'Existing LSTM + historical profile'
+            st.info('Future-date scenarios use LSTM 1 + historical profile. To use the dedicated 30-day LSTM 2, select "Forecast after latest observations" above.')
+        elif hours == 720 and not long_term_ready:
+            method = 'Existing LSTM + historical profile'
+            st.warning('LSTM 2 is not available for this depot. Using LSTM 1 + historical profile for the 30-day forecast.')
+        elif hours > 72:
+            method = 'Existing LSTM + historical profile'
+            st.caption('Model selected automatically: LSTM 1 · First 72 hours + historical profile for the remaining period')
+        else:
+            method = 'Existing LSTM + historical profile'
+            st.caption('Model selected automatically: LSTM 1 · Short-term recursive forecast')
     # Explicitly distinguish the two trained LSTM approaches for demonstrations.
     st.markdown('### Two LSTM forecasting approaches')
     st.markdown('**LSTM 1 — Short-term:** 24-hour (96-reading) input; recursive forecasts up to 72 hours.  '
@@ -1390,7 +1400,7 @@ def render_fast_forecast(name):
 
         import forecast_results_store
         try:
-            forecast_results_store.save(name, pred, capacity, 'Saved LSTM · future demand')
+            forecast_results_store.save(name, pred, capacity, 'LSTM 2 · 30-day forecast' if method.startswith('Dedicated') else 'LSTM 1 · demand forecast')
         except Exception as exc:
             st.warning(f'Forecast is available here, but could not be saved for other pages: {exc}')
 
