@@ -11,5 +11,10 @@
   "test_windows": 59,
   "train_windows": 184,
   "validation_windows": 58,
-  "last_observation": "2022-07-25 00:00:00"
+  "last_observation": "2022-07-25 00:00:00",
+  "test_r2": 0.2994617819786072,
+  "test_mape_pct": 527.3433227539062,
+  "test_peak_error_kw": 141.5605926513672,
+  "mape_min_actual_kw": 0.1,
+  "peak_error_definition": "Mean absolute peak error across held-out 30-day windows"
 }
