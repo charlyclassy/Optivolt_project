@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import time
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1421,8 +1422,11 @@ def render_fast_forecast(name):
     if missing or not st.session_state.get(key):
         return
 
+    run_started = time.perf_counter()
+    progress_note = st.empty()
+    progress_note.info('⏳ Generating demand forecast…')
     try:
-        with st.spinner('Running saved LSTM inference for the selected horizon'):
+        with st.spinner('Generating demand forecast — running the saved model or retrieving a cached result…'):
             if method.startswith('Dedicated'):
                 hist, pred = long_term_lstm.forecast(name, _regular(observations(name)), int(hours))
             elif scenario:
@@ -1433,6 +1437,12 @@ def render_fast_forecast(name):
             else:
                 hist, pred = _cached_extended_forecast(
                     name, model_revision(name), dataset_revision(name), int(hours))
+
+        elapsed_seconds = time.perf_counter() - run_started
+        progress_note.success(
+            f'✓ Forecast generated successfully in {elapsed_seconds:.2f} seconds. '
+            'Repeated forecasts can finish almost instantly because Optivolt caches model results.'
+        )
 
         if scenario:
             st.markdown(f'<div class="ov-period"><strong>Prediction period · {hours} hours</strong> &nbsp; {pred.index[0]:%d %b %Y %H:%M} – {(pred.index[-1] + pd.Timedelta(minutes=15)):%d %b %Y %H:%M} (end exclusive)</div>', unsafe_allow_html=True)
