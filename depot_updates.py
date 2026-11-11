@@ -1199,19 +1199,34 @@ def render_fast_forecast(name):
         '<small>Purpose · horizon · capacity · method</small></div>',
         unsafe_allow_html=True,
     )
+    # Widget callbacks run before Streamlit redraws the page. Selecting 30 days
+    # automatically chooses the only purpose supported by the direct LSTM 2.
+    purpose_key = f'forecast_purpose_{_slug(name)}'
+    horizon_key = f'fast_horizon_{_slug(name)}'
+    forecast_run_key = f'run_fast_forecast_{_slug(name)}'
+
+    def _on_horizon_change():
+        if st.session_state.get(horizon_key) == 720:
+            st.session_state[purpose_key] = 'Forecast after latest observations'
+        st.session_state[forecast_run_key] = False
+
+    def _on_purpose_change():
+        st.session_state[forecast_run_key] = False
+
     with st.container(border=True):
         mode = st.radio(
             'Forecast purpose',
             ['Future demand prediction', 'Forecast after latest observations'],
-            key=f'forecast_purpose_{_slug(name)}',
+            key=purpose_key,
             horizontal=True,
+            on_change=_on_purpose_change,
             help='A future-date scenario uses historical demand as its input pattern, not measurements from the chosen future date.',
         )
         a, b = st.columns(2)
         with a:
             hours = st.selectbox('Forecast horizon', [2, 4, 6, 12, 24, 48, 72, 168, 336, 720],
                                  index=4, format_func=lambda h: f'{h // 24} days' if h >= 168 else f'{h} hours',
-                                 key=f'fast_horizon_{_slug(name)}')
+                                 key=horizon_key, on_change=_on_horizon_change)
         with b:
             capacity = st.number_input('Grid capacity (kW)', min_value=.1,
                                        value=float(v.get('capacity_kw', BUILTIN.get(name, 17.))),
@@ -1224,37 +1239,24 @@ def render_fast_forecast(name):
         scenario_selected = mode.startswith('Future demand prediction')
         if hours == 720 and long_term_ready and not scenario_selected:
             method = 'Dedicated 30-day LSTM (trained)'
-            model_title = 'LSTM 2 · Long-term'
-            model_detail = 'Direct 30-day forecast from latest observations'
+            model_title = 'LSTM 2 — Long-term forecast'
         elif hours > 72:
             method = 'Existing LSTM + historical profile'
-            model_title = 'LSTM 1 · Hybrid forecast'
-            model_detail = 'First 72 hours: LSTM 1 · Remaining days: historical profile'
+            model_title = 'LSTM 1 — Short-term forecast'
         else:
             method = 'Existing LSTM + historical profile'
-            model_title = 'LSTM 1 · Short-term'
-            model_detail = f'{hours}-hour recursive forecast'
+            model_title = 'LSTM 1 — Short-term forecast'
 
         st.markdown(
             '<div style="background:#17365D;border-left:4px solid #3478F6;'
             'border-radius:10px;padding:10px 14px;margin-top:4px;">'
             '<div style="color:#FFFFFF;-webkit-text-fill-color:#FFFFFF;'
             'font-weight:750;font-size:15px;">'
-            '&#10003; Automatically selected: ' + html.escape(model_title) + '</div>'
-            '<div style="color:#DCEBFA;-webkit-text-fill-color:#DCEBFA;'
-            'font-size:12px;margin-top:2px;">' + html.escape(model_detail) + '</div>'
+            '&#10003; ' + html.escape(model_title) + '</div>'
             '</div>', unsafe_allow_html=True,
         )
-        if hours == 720 and scenario_selected and long_term_ready:
-            with st.expander('Why is the 30-day forecast using a hybrid model?', expanded=False):
-                st.write('LSTM 2 forecasts directly from the latest available observations. '
-                         'A forecast starting on a chosen future date instead uses LSTM 1 '
-                         'with a historical demand profile. Select “Forecast after latest '
-                         'observations” to use LSTM 2 for 30 days.')
-        elif hours == 720 and not long_term_ready:
-            with st.expander('Why is LSTM 2 unavailable?', expanded=False):
-                st.write('No compatible saved long-term model is available for this depot. '
-                         'The forecast uses LSTM 1 with a historical demand profile instead.')
+        if hours == 720 and not long_term_ready:
+            st.caption('LSTM 2 unavailable — using LSTM 1.')
     # Explicitly distinguish the two trained LSTM approaches for demonstrations.
     st.markdown('### Two LSTM forecasting approaches')
     st.markdown('**LSTM 1 — Short-term:** 24-hour (96-reading) input; recursive forecasts up to 72 hours.  '
