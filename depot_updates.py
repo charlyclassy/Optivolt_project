@@ -1219,25 +1219,42 @@ def render_fast_forecast(name):
 
         import long_term_lstm
         long_term_ready = long_term_lstm.model_available(name)
-        # Automatically route the forecast to the model that supports its horizon.
-        # The dedicated long-term model only supports forecasts starting after
-        # the latest complete observed day, not arbitrary future-date scenarios.
+        # Select the real inference path; do not imply that a future-date
+        # scenario is handled by the direct 30-day model.
         scenario_selected = mode.startswith('Future demand prediction')
         if hours == 720 and long_term_ready and not scenario_selected:
             method = 'Dedicated 30-day LSTM (trained)'
-            st.success('Model selected automatically: LSTM 2 · Direct 30-day forecast')
-        elif hours == 720 and scenario_selected:
-            method = 'Existing LSTM + historical profile'
-            st.info('Future-date scenarios use LSTM 1 + historical profile. To use the dedicated 30-day LSTM 2, select "Forecast after latest observations" above.')
-        elif hours == 720 and not long_term_ready:
-            method = 'Existing LSTM + historical profile'
-            st.warning('LSTM 2 is not available for this depot. Using LSTM 1 + historical profile for the 30-day forecast.')
+            model_title = 'LSTM 2 · Long-term'
+            model_detail = 'Direct 30-day forecast from latest observations'
         elif hours > 72:
             method = 'Existing LSTM + historical profile'
-            st.caption('Model selected automatically: LSTM 1 · First 72 hours + historical profile for the remaining period')
+            model_title = 'LSTM 1 · Hybrid forecast'
+            model_detail = 'First 72 hours: LSTM 1 · Remaining days: historical profile'
         else:
             method = 'Existing LSTM + historical profile'
-            st.caption('Model selected automatically: LSTM 1 · Short-term recursive forecast')
+            model_title = 'LSTM 1 · Short-term'
+            model_detail = f'{hours}-hour recursive forecast'
+
+        st.markdown(
+            '<div style="background:#17365D;border-left:4px solid #3478F6;'
+            'border-radius:10px;padding:10px 14px;margin-top:4px;">'
+            '<div style="color:#FFFFFF;-webkit-text-fill-color:#FFFFFF;'
+            'font-weight:750;font-size:15px;">'
+            '&#10003; Automatically selected: ' + html.escape(model_title) + '</div>'
+            '<div style="color:#DCEBFA;-webkit-text-fill-color:#DCEBFA;'
+            'font-size:12px;margin-top:2px;">' + html.escape(model_detail) + '</div>'
+            '</div>', unsafe_allow_html=True,
+        )
+        if hours == 720 and scenario_selected and long_term_ready:
+            with st.expander('Why is the 30-day forecast using a hybrid model?', expanded=False):
+                st.write('LSTM 2 forecasts directly from the latest available observations. '
+                         'A forecast starting on a chosen future date instead uses LSTM 1 '
+                         'with a historical demand profile. Select “Forecast after latest '
+                         'observations” to use LSTM 2 for 30 days.')
+        elif hours == 720 and not long_term_ready:
+            with st.expander('Why is LSTM 2 unavailable?', expanded=False):
+                st.write('No compatible saved long-term model is available for this depot. '
+                         'The forecast uses LSTM 1 with a historical demand profile instead.')
     # Explicitly distinguish the two trained LSTM approaches for demonstrations.
     st.markdown('### Two LSTM forecasting approaches')
     st.markdown('**LSTM 1 — Short-term:** 24-hour (96-reading) input; recursive forecasts up to 72 hours.  '
@@ -1345,9 +1362,6 @@ def render_fast_forecast(name):
         with growth_col:
             growth_pct = st.slider('Fleet-demand growth (%)', min_value=0, max_value=150,
                                    value=20, step=5, format='%d%%', key=f'future_growth_{_slug(name)}')
-        st.markdown('<div class="optivolt-summary"><strong>Future demand prediction</strong> · '
-                    'Saved LSTM (first 72 hours) · 60-day historical profile for longer forecasts</div>',
-                    unsafe_allow_html=True)
         with st.expander('How the future prediction is generated', expanded=False):
             st.write('The saved LSTM uses 96 consecutive 15-minute readings (24 hours) as its fixed input. '
                      'The forecast horizon is selected separately (up to 30 days). The first 72 hours '
@@ -1383,8 +1397,6 @@ def render_fast_forecast(name):
                 hist, pred = _cached_extended_forecast(
                     name, model_revision(name), dataset_revision(name), int(hours))
 
-        if hours > 72 and not method.startswith('Dedicated'):
-            st.info('Forecast method: first 72 hours use the saved 96-input LSTM; the remaining period uses a 60-day historical weekday/time-of-day demand profile. The saved model is not retrained.')
         if scenario:
             st.markdown(f'<div class="ov-period"><strong>Prediction period · {hours} hours</strong> &nbsp; {pred.index[0]:%d %b %Y %H:%M} – {(pred.index[-1] + pd.Timedelta(minutes=15)):%d %b %Y %H:%M} (end exclusive)</div>', unsafe_allow_html=True)
             st.caption('Simulation input: 96 synthetic 15-minute readings for the day immediately before '
