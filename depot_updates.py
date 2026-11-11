@@ -1169,12 +1169,16 @@ def render_fast_forecast(name):
     div[data-testid="stDataFrame"] [data-testid="stDataFrameResizable"] {color:#102A4A!important;font-weight:800!important;}
     div[data-testid="stDataFrame"] [role="gridcell"],
     div[data-testid="stDataFrame"] [role="gridcell"] * {color:#102A4A!important;font-weight:650!important;}
+    /* Compact forecast settings card. */
+    div[data-testid="stVerticalBlockBorderWrapper"] {border-radius:12px;}
+    div[data-testid="stVerticalBlockBorderWrapper"] > div {padding-top:.65rem!important;padding-bottom:.65rem!important;}
+    div[data-testid="stRadio"] [role="radiogroup"] {gap:1rem!important;}
     .ov-hero {background:linear-gradient(110deg,#12366B,#126A91 67%,#078D92);color:#fff;
       border-radius:16px;padding:17px 23px;margin:0 0 9px;box-shadow:0 8px 22px rgba(14,53,100,.16);}
     .ov-hero h1 {font-size:1.85rem!important;color:#fff!important;margin:0 0 4px!important;line-height:1.1!important;}
     .ov-hero p {color:#eaf7ff!important;margin:0!important;font-size:.94rem;}
     .ov-section {background:linear-gradient(105deg,#163e77,#0c8290);color:#fff;
-      padding:11px 16px;border-radius:12px;margin:9px 0 5px;display:flex;align-items:center;gap:10px;
+      padding:8px 13px;border-radius:10px;margin:6px 0 3px;display:flex;align-items:center;gap:10px;
       box-shadow:0 5px 15px rgba(18,61,109,.13);}
     .ov-section strong {font-size:1.08rem;color:#fff!important;letter-spacing:.005em;}
     .ov-section small {font-size:.83rem;color:#e6f8ff!important;margin-left:auto;}
@@ -1183,37 +1187,44 @@ def render_fast_forecast(name):
     .ov-period {background:#e9f2ff;border-left:4px solid #2465c8;border-radius:10px;
       padding:9px 13px;color:#17365d;margin:4px 0;font-size:.92rem;}
     </style>''', unsafe_allow_html=True)
-    st.markdown('<div class="ov-hero"><h1>⚡ Demand Forecast</h1><p>Saved LSTM · 15-minute predictions · Forecast and fleet-growth planning</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="ov-hero"><h1>⚡ Demand Forecast</h1><p>Configure demand predictions and grid capacity</p></div>', unsafe_allow_html=True)
     v = registry().get(name, {})
     st.markdown(f'<span class="ov-pill">Depot: {name} · Model: {v.get("active", "original")}</span>', unsafe_allow_html=True)
 
-    mode = st.radio(
-        'Forecast purpose',
-        ['Future demand prediction', 'Forecast after latest observations'],
-        key=f'forecast_purpose_{_slug(name)}',
-        help='A future-date scenario uses historical demand as its input pattern, not measurements from the chosen future date.',
+    st.markdown(
+        '<div class="ov-section"><strong>⚙️ Forecast settings</strong>'
+        '<small>Purpose · horizon · capacity · method</small></div>',
+        unsafe_allow_html=True,
     )
-    a, b = st.columns(2)
-    with a:
-        hours = st.selectbox('Forecast horizon', [2, 4, 6, 12, 24, 48, 72, 168, 336, 720],
-                             index=4, format_func=lambda h: f'{h // 24} days' if h >= 168 else f'{h} hours',
-                             key=f'fast_horizon_{_slug(name)}')
-    with b:
-        capacity = st.number_input('Grid capacity (kW)', min_value=.1,
-                                   value=float(v.get('capacity_kw', BUILTIN.get(name, 17.))),
-                                   step=1., key=f'fast_grid_{_slug(name)}')
+    with st.container(border=True):
+        mode = st.radio(
+            'Forecast purpose',
+            ['Future demand prediction', 'Forecast after latest observations'],
+            key=f'forecast_purpose_{_slug(name)}',
+            horizontal=True,
+            help='A future-date scenario uses historical demand as its input pattern, not measurements from the chosen future date.',
+        )
+        a, b = st.columns(2)
+        with a:
+            hours = st.selectbox('Forecast horizon', [2, 4, 6, 12, 24, 48, 72, 168, 336, 720],
+                                 index=4, format_func=lambda h: f'{h // 24} days' if h >= 168 else f'{h} hours',
+                                 key=f'fast_horizon_{_slug(name)}')
+        with b:
+            capacity = st.number_input('Grid capacity (kW)', min_value=.1,
+                                       value=float(v.get('capacity_kw', BUILTIN.get(name, 17.))),
+                                       step=1., key=f'fast_grid_{_slug(name)}')
 
-    import long_term_lstm
-    long_term_ready = long_term_lstm.model_available(name)
-    method = st.selectbox(
-        'Forecasting method',
-        ['Existing LSTM + historical profile'] +
-        (['Dedicated 30-day LSTM (trained)'] if long_term_ready else []),
-        help='The dedicated model appears only after its trained model.keras and metadata.json are present.',
-        key=f'long_term_method_{_slug(name)}',
-    )
-    if not long_term_ready:
-        st.caption('Dedicated 30-day LSTM not trained for this depot yet. The existing hybrid method remains available.')
+        import long_term_lstm
+        long_term_ready = long_term_lstm.model_available(name)
+        method = st.selectbox(
+            'Forecasting method',
+            ['Existing LSTM + historical profile'] +
+            (['Dedicated 30-day LSTM (trained)'] if long_term_ready else []),
+            help='The dedicated model appears only after its trained model.keras and metadata.json are present.',
+            key=f'long_term_method_{_slug(name)}',
+        )
+        if not long_term_ready:
+            st.caption('Dedicated 30-day LSTM not trained for this depot yet. The existing hybrid method remains available.')
     # Explicitly distinguish the two trained LSTM approaches for demonstrations.
     st.markdown('### Two LSTM forecasting approaches')
     st.markdown('**LSTM 1 — Short-term:** 24-hour (96-reading) input; recursive forecasts up to 72 hours.  '
@@ -1297,11 +1308,11 @@ def render_fast_forecast(name):
             'accuracy on future dates.\n\n'
             '**Reading the five measures**\n\n'
             '- **MAE:** Typical error in kW; lower is better.\n'
-            '- **RMSE:** Gives extra weight to large forecasting mistakes.\n'
-            '- **R²:** Compares predictions with a constant-average baseline; negative values are a warning.\n'
-            '- **MAPE:** Percentage error, which can be misleading when demand is near zero.\n'
+            '- **RMSE:** Gives extra weight to large forecasting mistakes; lower is better.\n'
+            '- **R²:** Compares predictions with a constant-average baseline; negative values are a warning; higher is better (best = 1).\n'
+            '- **MAPE:** Percentage error, which can be misleading when demand is near zero; lower is better.\n'
             '- **Peak demand error:** Shows how far predicted peaks differ from actual peaks; '
-            'particularly important for capacity warnings.\n\n'
+            'particularly important for capacity warnings; lower is better.\n\n'
             '**Confidence:** These metrics support an evidence-based assessment, but reliability '
             'also depends on avoiding missed peaks and performing well on unseen real data.'
         )
