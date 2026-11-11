@@ -1241,9 +1241,24 @@ def render_fast_forecast(name):
         'MAPE (%)': _show_metric(_long_meta.get('test_mape_pct'), '%'),
         'Peak demand error (kW)': _show_metric(_long_meta.get('test_peak_error_kw'), ' kW'),
     }
+    # The 72-hour evaluator writes separate metadata; trained models stay untouched.
+    try:
+        _short_meta_file = (_Path(__file__).resolve().parent / 'models' /
+                            'short_term_lstm_evaluation' /
+                            (name.lower().replace(' ', '_').replace('-', '_') + '.json'))
+        _short_meta = _json.loads(_short_meta_file.read_text(encoding='utf-8')) if _short_meta_file.is_file() else {}
+    except (OSError, ValueError, TypeError):
+        _short_meta = {}
+    _short_metrics = {
+        'MAE (kW)': _show_metric(_short_meta.get('test_mae_kw'), ' kW'),
+        'RMSE (kW)': _show_metric(_short_meta.get('test_rmse_kw'), ' kW'),
+        'R²': _show_metric(_short_meta.get('test_r2')),
+        'MAPE (%)': _show_metric(_short_meta.get('test_mape_pct'), '%'),
+        'Peak demand error (kW)': _show_metric(_short_meta.get('test_peak_error_kw'), ' kW'),
+    }
     _comparison = pd.DataFrame({
         'Evaluation criterion': list(_long_metrics),
-        'LSTM 1 · 72 h': ['Not yet evaluated on matched holdout'] * 5,
+        'LSTM 1 · 72 h': list(_short_metrics.values()),
         'LSTM 2 · 30 d': list(_long_metrics.values()),
     })
     st.dataframe(_comparison, hide_index=True, use_container_width=True)
@@ -1253,10 +1268,12 @@ def render_fast_forecast(name):
                     '**MAPE** is the average absolute percentage error, calculated only where '
                     'actual demand is above 0.1 kW to avoid division by zero. '
                     '**Peak demand error** is the mean absolute difference between the '
-                    'predicted and actual peak in each held-out 30-day window (lower is better).')
-        st.caption('The original 72-hour model needs its own held-out, matched-horizon '
-                   'evaluation before numeric results can be shown alongside the 30-day model. '
-                   'Run evaluate_long_term_lstm.py to populate the three additional 30-day metrics.')
+                    'predicted and actual peak in each held-out forecast window (lower is better).')
+        st.caption('LSTM 1 uses non-overlapping, recursive 72-hour forecasts from the final 15% '
+                   'of the continuous dataset. LSTM 2 uses overlapping 30-day windows ending '
+                   'in its held-out period. Different horizons and window sampling make these '
+                   'descriptive scores, NOT a matched head-to-head accuracy ranking. '
+                   'Run evaluate_short_term_lstm.py --all to populate LSTM 1 results.')
     scenario = mode.startswith('Future demand prediction')
     future_date = None
     if scenario:

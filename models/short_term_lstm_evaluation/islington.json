@@ -1,0 +1,19 @@
+{
+  "depot": "Islington",
+  "model_type": "Existing saved 96-step LSTM, recursive 72-hour forecast",
+  "input_steps": 96,
+  "output_steps": 288,
+  "test_windows": 19,
+  "test_points": 5472,
+  "test_start": "2022-05-28 00:00:00",
+  "test_last_target": "2022-07-25 00:00:00",
+  "test_mae_kw": 3.2969227993992836,
+  "test_rmse_kw": 5.886307939957043,
+  "test_r2": -0.2745249145999029,
+  "test_mape_pct": 89.96685932290514,
+  "test_peak_error_kw": 18.682932845729873,
+  "mape_min_actual_kw": 0.1,
+  "peak_error_definition": "Mean absolute peak error across non-overlapping held-out 72-hour windows",
+  "evaluation_scope": "Last 15% of contiguous complete-day history; non-overlapping 72-hour recursive forecasts; targets entirely in test period",
+  "comparison_note": "Different horizon and test-window sampling from 30-day LSTM; scores are not a matched head-to-head test."
+}
