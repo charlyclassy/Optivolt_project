@@ -1242,7 +1242,7 @@ def render_fast_forecast(name):
             model_title = 'LSTM 2 — Long-term forecast'
         elif hours > 72:
             method = 'Existing LSTM + historical profile'
-            model_title = 'LSTM 1 — Short-term forecast'
+            model_title = 'LSTM 1 — Hybrid forecast'
         else:
             method = 'Existing LSTM + historical profile'
             model_title = 'LSTM 1 — Short-term forecast'
@@ -1257,11 +1257,13 @@ def render_fast_forecast(name):
         )
         if hours == 720 and not long_term_ready:
             st.caption('LSTM 2 unavailable — using LSTM 1.')
-    # Explicitly distinguish the two trained LSTM approaches for demonstrations.
-    st.markdown('### Two LSTM forecasting approaches')
-    st.markdown('**LSTM 1 — Short-term:** 24-hour (96-reading) input; recursive forecasts up to 72 hours.  '
-                '**LSTM 2 — Long-term:** 60-day input; direct multi-output forecasts up to 30 days. '
-                'Longer forecasts using LSTM 1 are **hybrid**, not a third trained LSTM.')
+    # Three inference methods use two trained LSTM models. The hybrid is not a third model.
+    st.markdown('### Three forecasting methods')
+    st.caption('Two trained LSTM models, three forecasting methods. The hybrid method extends LSTM 1 with historical demand patterns.')
+    with st.expander('View the three forecasting methods', expanded=False):
+        st.markdown('**Method 1 — LSTM 1 · Short-term:** Up to 72 hours; recursive LSTM predictions.')
+        st.markdown('**Method 2 — LSTM 1 · Hybrid:** Beyond 72 hours; LSTM 1 combined with historical demand profiles.')
+        st.markdown('**Method 3 — LSTM 2 · Long-term:** Direct 30-day forecast after the latest observations, when available.')
     st.caption('The five evaluation criteria below refer to held-out observed demand.')
     try:
         import json as _json
@@ -1414,7 +1416,7 @@ def render_fast_forecast(name):
 
         import forecast_results_store
         try:
-            forecast_results_store.save(name, pred, capacity, 'LSTM 2 · 30-day forecast' if method.startswith('Dedicated') else 'LSTM 1 · demand forecast')
+            forecast_results_store.save(name, pred, capacity, 'LSTM 2 · 30-day forecast' if method.startswith('Dedicated') else ('LSTM 1 · hybrid forecast' if hours > 72 else 'LSTM 1 · short-term forecast'))
         except Exception as exc:
             st.warning(f'Forecast is available here, but could not be saved for other pages: {exc}')
 
