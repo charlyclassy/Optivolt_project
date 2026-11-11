@@ -1288,29 +1288,25 @@ def render_fast_forecast(name):
     with _right_card:
         st.markdown(_metric_card('LSTM 2 · Long-term', 'Direct forecast · 30 days', _long_metrics),
                     unsafe_allow_html=True)
-    st.caption('**Why the evaluation matters:** These scores come from held-out UKPN demand. '
-               'Lower forecast and peak errors provide stronger evidence of accuracy, '
-               'but no score guarantees reliable future predictions.')
-    with st.expander('What do these results tell us about model confidence?', expanded=False):
+    # One compact disclosure keeps the forecast controls close to the cards.
+    with st.expander('Understanding forecast accuracy and model confidence', expanded=False):
         st.markdown(
-            '- **MAE:** Average absolute error in kW. Lower is better.\n'
-            '- **RMSE:** Penalises large mistakes, particularly near the grid limit.\n'
-            '- **R²:** Measures performance against predicting average demand; negative values are a warning.\n'
-            '- **MAPE:** Percentage error; low demand can exaggerate the result.\n'
-            '- **Peak demand error:** Measures how accurately peaks are forecast, '
-            'which matters for grid-capacity warnings.'
+            '**Why these results matter**\n\n'
+            'The scores use held-out UKPN demand. Smaller errors, especially at demand peaks, '
+            'provide stronger evidence for grid-capacity planning. They do not guarantee '
+            'accuracy on future dates.\n\n'
+            '**Reading the five measures**\n\n'
+            '- **MAE:** Typical error in kW; lower is better.\n'
+            '- **RMSE:** Gives extra weight to large forecasting mistakes.\n'
+            '- **R²:** Compares predictions with a constant-average baseline; negative values are a warning.\n'
+            '- **MAPE:** Percentage error, which can be misleading when demand is near zero.\n'
+            '- **Peak demand error:** Shows how far predicted peaks differ from actual peaks; '
+            'particularly important for capacity warnings.\n\n'
+            '**Confidence:** These metrics support an evidence-based assessment, but reliability '
+            'also depends on avoiding missed peaks and performing well on unseen real data.'
         )
-        st.markdown('**Confidence assessment:** Evaluate on unseen real observations, '
-                    'check for missed demand peaks and compare against a simple baseline. '
-                    'A model should not be labelled highly reliable on these metrics alone.')
-    with st.expander('How the five metrics are calculated', expanded=False):
-        st.markdown('**MAE** is mean absolute error; **RMSE** is root mean squared error; '
-                    '**R²** compares errors with the observed mean; **MAPE** averages '
-                    'absolute percentage errors where actual demand exceeds 0.1 kW; '
-                    '**peak demand error** averages absolute differences in forecast-window peaks.')
-        st.caption('LSTM 1 is evaluated using recursive 72-hour forecasts; '
-                   'LSTM 2 is evaluated using direct 30-day forecasts. '
-                   'Run evaluate_short_term_lstm.py --all to populate LSTM 1 results.')
+    st.markdown('#### Forecast scenario')
+    st.caption('Choose the prediction date and expected fleet growth, then generate a forecast.')
     scenario = mode.startswith('Future demand prediction')
     future_date = None
     if scenario:
@@ -1324,7 +1320,7 @@ def render_fast_forecast(name):
             )
         with growth_col:
             growth_pct = st.slider('Fleet-demand growth (%)', min_value=0, max_value=150,
-                                   value=20, step=5, key=f'future_growth_{_slug(name)}')
+                                   value=20, step=5, format='%d%%', key=f'future_growth_{_slug(name)}')
         st.markdown('<div class="optivolt-summary"><strong>Future demand prediction</strong> · '
                     'Saved LSTM (first 72 hours) · 60-day historical profile for longer forecasts</div>',
                     unsafe_allow_html=True)
