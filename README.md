@@ -4,11 +4,11 @@
 
 **Optivolt** is an interactive machine-learning application developed using Python and Streamlit to forecast electricity demand at electric vehicle (EV) depots and support grid-capacity planning.
 
-The project combines historical electricity-demand data, predictive modelling, capacity-risk assessment and interactive visualisations to help users understand demand patterns and evaluate potential infrastructure constraints.
+The project combines historical electricity-demand data, LSTM neural networks, capacity-risk assessment and interactive visualisations to help users understand electricity consumption patterns and evaluate potential infrastructure constraints.
 
-🌐 **[Launch the Live Optivolt Application](https://optivolt-project-4htmec97k5xzsa25mvtfeq.streamlit.app/)**
+🌐 **[Launch the Live Optivolt Application](https://optivolt_project-4htmec97k5xzsa25mvtfeq.streamlit.app/)**
 
-💻 **[View the GitHub Repository](https://github.com/charlyclassy/Optivolt-Project)**
+💻 **[View the GitHub Repository](https://github.com/charlyclassy/Optivolt_Project)**
 
 ## Project Objectives
 
@@ -17,111 +17,156 @@ The project combines historical electricity-demand data, predictive modelling, c
 - Predict future electricity demand using LSTM neural networks.
 - Identify periods of potential grid-capacity risk.
 - Evaluate the impact of EV fleet expansion.
-- Provide accessible, interactive dashboards for operational decision-making.
+- Provide accessible, interactive dashboards for electricity-demand planning.
 
 ## Key Features
 
 ### 1. Electricity Demand Forecasting
 
-Optivolt uses a Long Short-Term Memory (LSTM) neural network to predict future electricity demand.
+Optivolt uses **two trained LSTM models across three forecasting methods**, supporting prediction horizons from 24 hours to 30 days.
 
-The saved short-term model uses 96 historical readings, equivalent to 24 hours of data at 15-minute intervals.
+| Forecasting Method | Horizon | Approach |
+|---|---|---|
+| LSTM 1 — Short-term forecast | 24, 48 and 72 hours | Recursive forecasting using a trained short-term LSTM |
+| LSTM 1 — Hybrid forecast | 7 and 14 days | First 72 hours predicted by LSTM 1; remaining days estimated using historical demand profiles |
+| LSTM 2 — Long-term forecast | 30 days | Direct multi-step forecasting using a separately trained long-term LSTM |
 
-The application supports:
+The short-term model uses 96 previous readings, equivalent to 24 hours of electricity-demand observations at 15-minute intervals.
 
-- Short-term forecasting for up to 72 hours.
-- Extended forecasting for 7, 14 and 30 days.
-- Interactive forecast visualisations.
-- Demand trend and peak-demand analysis.
+The long-term model uses a longer historical input window to generate a direct 30-day forecast.
 
-Extended forecasts use a hybrid approach combining short-term LSTM predictions with historical time-of-week demand patterns.
+Optivolt selects the appropriate forecasting method according to the chosen horizon and model availability. Where an alternative method is required, the application should identify the method actually used.
 
 ### 2. Grid Capacity Risk Assessment
 
-The application compares forecast electricity demand against configurable grid-capacity thresholds.
+The application compares predicted electricity demand against configurable grid-capacity limits.
 
-Features include:
+Forecast results include:
 
-- Forecast peak demand in kilowatts (kW).
-- Grid-capacity utilisation.
-- Remaining grid headroom.
-- Warning and breach thresholds.
-- Capacity-risk visualisations.
-- Interpretation of forecast results.
+- Highest predicted electricity demand (kW).
+- Configured grid capacity (kW).
+- Minimum spare grid capacity (kW).
+- Total predicted energy consumption (kWh).
+- Estimated duration of capacity exceedances.
+- Busiest predicted demand period.
+- Demand and grid-capacity visualisations.
+
+These indicators help identify periods when electricity demand may approach or exceed the available capacity.
 
 ### 3. EV Fleet Growth Scenarios
 
-Users can explore how increases in EV fleet size may affect future electricity demand.
+Optivolt allows users to investigate how EV fleet expansion may affect electricity demand.
 
-Scenario analysis supports comparisons between different fleet-growth assumptions and helps identify potential capacity constraints.
+Users can apply demand-growth assumptions to explore potential future electricity requirements and identify possible capacity constraints.
+
+For future-date simulations, historical demand patterns may be used to construct synthetic input readings.
+
+**Synthetic readings represent simulated electricity demand, not verified live depot measurements.**
+
+The application uses saved forecasting models for prediction without retraining them each time a forecast is generated.
 
 ### 4. Machine Learning Model Evaluation
 
-Optivolt includes comparisons between:
+Optivolt supports comparison of forecasting approaches, including:
 
 | Model | Purpose |
 |---|---|
-| Previous-day baseline | Reference forecasting approach |
-| Random Forest | Ensemble machine-learning model |
-| XGBoost | Gradient-boosted regression model |
-| LSTM | Deep-learning time-series forecasting |
+| Previous-day baseline | Reference forecasting method |
+| Random Forest | Ensemble machine-learning approach |
+| XGBoost | Gradient-boosted regression |
+| LSTM 1 | Short-term electricity-demand forecasting |
+| LSTM 2 | Direct long-term electricity-demand forecasting |
 
-Performance evaluation includes:
+Model evaluation includes:
 
-- Mean Absolute Error (MAE)
-- Root Mean Squared Error (RMSE)
-- R² score
-- Capacity-breach detection
-- Confusion matrices and classification metrics
+- Mean Absolute Error (MAE).
+- Root Mean Squared Error (RMSE).
+- R² score.
+- Peak-demand prediction error.
+- Capacity-breach detection.
+- Confusion matrices and classification metrics, where applicable.
 
-These metrics help assess forecasting accuracy and the reliability of capacity-risk predictions.
+These metrics help assess forecasting accuracy and the reliability of grid-capacity warnings.
 
-### 5. Interactive Dashboard
+### 5. Interactive Dashboard and Depot Management
 
-The Streamlit application brings together forecasting, historical demand analysis, scenario planning and model evaluation.
+The Streamlit dashboard brings together:
 
-Interactive controls allow users to explore different depots, forecasting horizons and capacity-planning assumptions.
+- Depot selection and management.
+- Historical electricity-demand analysis.
+- Forecast horizon configuration.
+- Automatic forecasting-method selection.
+- Future-demand scenario planning.
+- Grid-capacity monitoring.
+- Interactive forecast visualisations.
+- Model performance evaluation.
+
+New depots require suitable historical observations and compatible model availability before forecasts can be generated.
 
 ## Dataset
 
-The project uses historical electricity-demand data associated with the **UK Power Networks Optimise Prime** project.
+The project uses historical electricity-demand data associated with the **UK Power Networks (UKPN) Optimise Prime project**.
 
-Data is analysed at 15-minute intervals across nine depot locations.
+The dataset includes electricity-demand observations recorded at 15-minute intervals across nine depot locations.
 
-Historical demand observations are used to investigate consumption patterns, prepare forecasting inputs and evaluate model performance.
+Historical observations are used to analyse electricity consumption patterns, prepare model inputs, train forecasting models and evaluate prediction accuracy.
+
+Additional synthetic demand data has also been explored for experimental model training and scenario analysis.
+
+Experimental synthetic-data-augmented models are maintained separately from the original trained models and are not automatically treated as production-ready.
 
 ## Technologies Used
 
 | Technology | Application |
 |---|---|
-| Python | Main programming language |
-| Streamlit | Web application and dashboard |
+| Python | Application development |
+| Streamlit | Interactive web dashboard |
 | Pandas | Data preparation and analysis |
 | NumPy | Numerical processing |
-| TensorFlow / Keras | LSTM neural network |
+| TensorFlow / Keras | LSTM neural networks |
 | Scikit-learn | Machine-learning models and evaluation |
 | XGBoost | Gradient-boosted forecasting |
 | Plotly | Interactive visualisations |
-| GitHub | Version control and project hosting |
-| Streamlit Community Cloud | Application deployment |
+| GitHub | Version control and source-code hosting |
+| Streamlit Community Cloud | Web application deployment |
 
 ## Forecasting Methodology
 
-The forecasting workflow consists of:
+The Optivolt forecasting workflow consists of:
 
-1. Loading historical electricity-demand observations.
-2. Validating timestamps and preparing the dataset.
-3. Analysing historical demand trends.
-4. Preparing features and time-series sequences.
-5. Training or loading machine-learning models.
-6. Generating electricity-demand predictions.
-7. Evaluating forecast accuracy.
-8. Comparing forecast demand against capacity thresholds.
-9. Presenting results through interactive dashboards.
+1. Loading historical depot electricity-demand observations.
+2. Validating timestamps and preparing demand data.
+3. Analysing historical consumption patterns.
+4. Preparing time-series sequences and model inputs.
+5. Loading the appropriate saved forecasting model.
+6. Selecting the forecasting method according to the prediction horizon.
+7. Generating electricity-demand predictions.
+8. Comparing predicted demand against configured grid-capacity limits.
+9. Displaying forecasts, summary indicators and capacity warnings.
 
-The existing short-term LSTM uses 24 hours of previous readings to generate recursive forecasts for up to 72 hours.
+### Short-Term Forecasting
 
-For longer horizons, Optivolt combines those predictions with historical demand patterns rather than claiming to use a separately trained long-term LSTM.
+LSTM 1 uses the previous 24 hours of observations to generate recursive electricity-demand predictions for 24, 48 or 72 hours.
+
+### Hybrid Forecasting
+
+For 7-day and 14-day predictions, Optivolt combines recursive LSTM 1 predictions for the first 72 hours with historical demand profiles for the remaining period.
+
+This is a hybrid forecasting method, not a third trained LSTM model.
+
+### Long-Term Forecasting
+
+LSTM 2 is a separately trained long-term forecasting model designed to predict 30 days of electricity demand directly using a longer historical input sequence.
+
+Its use depends on the availability of suitable input data and model artefacts.
+
+### Future-Demand Simulation
+
+Future-demand scenarios may use historical depot patterns to construct synthetic input readings for a selected future period.
+
+Fleet-growth adjustments allow users to explore hypothetical increases in electricity demand.
+
+These scenarios support planning and demonstration but should not be interpreted as live operational forecasts.
 
 ## Running the Application Locally
 
@@ -138,37 +183,52 @@ Install the required Python packages:
 pip install -r requirements.txt
 ```
 
-Launch the application:
+Launch the application using the configured Streamlit entry-point file:
 
 ```bash
-streamlit run app.py
+streamlit run depot_updates.py
 ```
 
-The application also requires its associated datasets and saved model artefacts to be available in the expected locations.
+The application requires its supporting datasets, saved model files and dependencies to be available in their expected locations.
+
+## Live Application
+
+Optivolt is deployed using Streamlit Community Cloud.
+
+**[Open Optivolt](https://optivolt-project-4htmec97k5xzsa25mvtfeq.streamlit.app/)**
+
+The deployed application uses the version of the code and supporting files available in its configured GitHub repository and branch.
 
 ## Limitations
 
 - Forecast accuracy depends on the quality and representativeness of historical data.
-- Recursive long-horizon predictions may accumulate errors.
-- Extended forecasts rely partly on historical demand patterns.
-- Fleet-growth scenarios are estimates based on planning assumptions.
-- Grid-capacity assessments depend on the thresholds configured in the application.
+- Historical observations may not reflect current depot operating conditions.
+- Recursive forecasting errors can accumulate over longer prediction horizons.
+- Hybrid forecasts rely partly on historical demand profiles.
+- Synthetic data represents simulated demand rather than verified real-time measurements.
+- Long-term LSTM predictions require suitable historical input sequences.
+- Fleet-growth scenarios depend on assumptions about future electricity consumption.
+- Grid-capacity warnings are planning indicators rather than guarantees of operational safety.
 
 ## Future Improvements
 
 Potential future development includes:
 
-- Training a dedicated long-term LSTM for multi-week forecasting.
-- Incorporating weather and charging-schedule information.
-- Improving prediction accuracy during unusual demand peaks.
-- Expanding scenario-planning functionality.
-- Supporting additional depot locations and datasets.
+- Integration with live smart-meter and depot electricity-demand readings.
+- Further validation of long-term LSTM forecasting performance.
+- Evaluation of synthetic-data-augmented forecasting models.
+- Incorporation of weather and EV charging-schedule information.
+- Improved peak-demand prediction and uncertainty estimation.
+- Expanded fleet-growth and charging-infrastructure scenarios.
+- Additional depot datasets and forecasting capabilities.
 
 ## Project Summary
 
-Optivolt demonstrates how data analytics, machine learning and interactive application development can be combined to address a practical challenge in EV infrastructure planning.
+Optivolt demonstrates how data analytics, deep learning and interactive application development can support electricity-demand forecasting and grid-capacity planning for EV depots.
 
-The project supports the interpretation of historical electricity demand, forecasting of future consumption and identification of potential grid-capacity risks.
+By combining two trained LSTM models, three forecasting methods, future-demand simulations and capacity-risk visualisations, the application provides a research and planning tool for exploring EV depot electricity requirements.
+
+The project is intended for forecasting research, demonstration and decision support rather than certified real-time grid operation.
 
 ---
 
