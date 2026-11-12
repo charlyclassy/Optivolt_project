@@ -1020,8 +1020,8 @@ def _cached_active_model(name, revision):
     return inference_step, scalers
 
 @st.cache_data(show_spinner=False,max_entries=32)
-def _cached_forecast(name,model_rev,data_rev,hours):
-    # Genuine recursive inference, cached against current active model + data versions.
+def _cached_forecast(name,model_rev,data_rev,hours,run_id=0):
+    # Each Generate click supplies a new run_id, bypassing old forecast results.
     import tensorflow as tf
     inference_step,(xm,xs,ym,ys)=_cached_active_model(name,model_rev)
     df=observations(name)
@@ -1041,8 +1041,8 @@ def _cached_forecast(name,model_rev,data_rev,hours):
     return history.tail(96*2),pd.Series(forecast,index=dates)
 
 @st.cache_data(show_spinner=False,max_entries=48)
-def _cached_synthetic_forecast(name, model_rev, data_rev, start_date, growth_pct, hours):
-    """Run a real saved LSTM on a clearly labelled synthetic 24-hour demand seed."""
+def _cached_synthetic_forecast(name, model_rev, data_rev, start_date, growth_pct, hours, run_id=0):
+    """Run saved LSTM on a synthetic seed; run_id forces fresh inference on click."""
     import tensorflow as tf
     from future_simulation import synthetic_seed
 
@@ -1090,14 +1090,14 @@ def _sixty_day_profile(name, target_times, growth_pct=0):
 
 
 @st.cache_data(show_spinner=False, max_entries=24)
-def _cached_extended_forecast(name, model_rev, data_rev, hours, start_date=None, growth_pct=0):
+def _cached_extended_forecast(name, model_rev, data_rev, hours, start_date=None, growth_pct=0, run_id=0):
     """Saved 96-input LSTM for 72h, then 60-day historical profile for planning."""
     short_hours = min(int(hours), 72)
     if start_date is None:
-        hist, short = _cached_forecast(name, model_rev, data_rev, short_hours)
+        hist, short = _cached_forecast(name, model_rev, data_rev, short_hours, run_id=run_id)
     else:
         hist, short = _cached_synthetic_forecast(
-            name, model_rev, data_rev, str(start_date), int(growth_pct), short_hours
+            name, model_rev, data_rev, str(start_date), int(growth_pct), short_hours, run_id=run_id
         )
     remaining = int(hours * 4) - len(short)
     if remaining <= 0:
@@ -1418,30 +1418,34 @@ def render_fast_forecast(name):
     if st.button('Generate forecast', type='primary',
                  key=f'generate_{_slug(name)}', disabled=bool(missing)):
         st.session_state[key] = True
+        # Increment per click so the forecast-result cache cannot serve a prior run.
+        st.session_state[f'{key}_run_id'] = st.session_state.get(f'{key}_run_id', 0) + 1
         st.rerun()
     if missing or not st.session_state.get(key):
         return
 
     run_started = time.perf_counter()
+    fresh_run_id = st.session_state.get(f'{key}_run_id', 0)
     progress_note = st.empty()
     progress_note.info('⏳ Generating demand forecast…')
     try:
-        with st.spinner('Generating demand forecast — running the saved model or retrieving a cached result…'):
+        with st.spinner('Running a fresh forecast using the saved LSTM model…'):
             if method.startswith('Dedicated'):
                 hist, pred = long_term_lstm.forecast(name, _regular(observations(name)), int(hours))
             elif scenario:
                 seed, pred = _cached_extended_forecast(
                     name, model_revision(name), dataset_revision(name), int(hours),
-                    str(future_date), int(growth_pct))
+                    str(future_date), int(growth_pct), run_id=fresh_run_id)
                 hist = seed
             else:
                 hist, pred = _cached_extended_forecast(
-                    name, model_revision(name), dataset_revision(name), int(hours))
+                    name, model_revision(name), dataset_revision(name), int(hours),
+                    run_id=fresh_run_id)
 
         elapsed_seconds = time.perf_counter() - run_started
         progress_note.success(
-            f'✓ Forecast generated successfully in {elapsed_seconds:.2f} seconds. '
-            'Repeated forecasts can finish almost instantly because Optivolt caches model results.'
+            f'✓ Fresh forecast completed in {elapsed_seconds:.3f} seconds. '
+            'The saved model was run again; no artificial delay was added.'
         )
 
         if scenario:
