@@ -6,9 +6,9 @@
 
 The project combines historical electricity-demand data, LSTM neural networks, capacity-risk assessment and interactive visualisations to help users understand electricity consumption patterns and evaluate potential infrastructure constraints.
 
-🌐 **[Launch the Live Optivolt Application](https://optivolt_project-4htmec97k5xzsa25mvtfeq.streamlit.app/)**
+🌐 **[Launch the Live Optivolt Application](https://optivolt-project-4htmec97k5xzsa25mvtfeq.streamlit.app/)**
 
-💻 **[View the GitHub Repository](https://github.com/charlyclassy/Optivolt_Project)**
+💻 **[View the GitHub Repository](https://github.com/charlyclassy/Optivolt-Project)**
 
 ## Project Objectives
 
