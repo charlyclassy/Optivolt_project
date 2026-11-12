@@ -1426,10 +1426,8 @@ def render_fast_forecast(name):
 
     run_started = time.perf_counter()
     fresh_run_id = st.session_state.get(f'{key}_run_id', 0)
-    progress_note = st.empty()
-    progress_note.info('⏳ Generating demand forecast…')
     try:
-        with st.spinner('Running a fresh forecast using the saved LSTM model…'):
+        with st.spinner('Generating forecast…'):
             if method.startswith('Dedicated'):
                 hist, pred = long_term_lstm.forecast(name, _regular(observations(name)), int(hours))
             elif scenario:
@@ -1441,12 +1439,10 @@ def render_fast_forecast(name):
                 hist, pred = _cached_extended_forecast(
                     name, model_revision(name), dataset_revision(name), int(hours),
                     run_id=fresh_run_id)
-
-        elapsed_seconds = time.perf_counter() - run_started
-        progress_note.success(
-            f'✓ Fresh forecast completed in {elapsed_seconds:.3f} seconds. '
-            'The saved model was run again; no artificial delay was added.'
-        )
+            # Keep the spinner visible briefly even when inference is very fast.
+            remaining = 1.5 - (time.perf_counter() - run_started)
+            if remaining > 0:
+                time.sleep(remaining)
 
         if scenario:
             st.markdown(f'<div class="ov-period"><strong>Prediction period · {hours} hours</strong> &nbsp; {pred.index[0]:%d %b %Y %H:%M} – {(pred.index[-1] + pd.Timedelta(minutes=15)):%d %b %Y %H:%M} (end exclusive)</div>', unsafe_allow_html=True)
