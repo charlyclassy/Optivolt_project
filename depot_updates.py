@@ -1415,35 +1415,48 @@ def render_fast_forecast(name):
 
     if missing:
         st.info('Forecast unavailable: ' + ' '.join(missing))
-    if st.button('Generate forecast', type='primary',
-                 key=f'generate_{_slug(name)}', disabled=bool(missing)):
-        st.session_state[key] = True
-        # Increment per click so the forecast-result cache cannot serve a prior run.
-        st.session_state[f'{key}_run_id'] = st.session_state.get(f'{key}_run_id', 0) + 1
-        st.rerun()
-    if missing or not st.session_state.get(key):
+    result_key = f'{key}_result'
+    settings_signature = (
+        name, int(hours), bool(scenario), str(future_date),
+        int(growth_pct) if scenario else None,
+        float(capacity), model_revision(name), dataset_revision(name),
+    )
+    clicked = st.button('Generate forecast', type='primary',
+                        key=f'generate_{_slug(name)}', disabled=bool(missing))
+    if missing:
+        st.session_state.pop(result_key, None)
         return
+    if clicked:
+        # Calculate only on an actual button click, never on a Streamlit rerun.
+        started = time.perf_counter()
+        try:
+            with st.spinner('Generating forecast…'):
+                if method.startswith('Dedicated'):
+                    hist, pred = long_term_lstm.forecast(name, _regular(observations(name)), int(hours))
+                elif scenario:
+                    hist, pred = _cached_extended_forecast(
+                        name, model_revision(name), dataset_revision(name), int(hours),
+                        str(future_date), int(growth_pct), run_id=time.perf_counter_ns())
+                else:
+                    hist, pred = _cached_extended_forecast(
+                        name, model_revision(name), dataset_revision(name), int(hours),
+                        run_id=time.perf_counter_ns())
+                remaining = 1.5 - (time.perf_counter() - started)
+                if remaining > 0:
+                    time.sleep(remaining)
+            st.session_state[result_key] = (settings_signature, hist, pred)
+        except Exception as exc:
+            st.session_state.pop(result_key, None)
+            st.error(f'Forecast unavailable: {exc}')
+            return
 
-    run_started = time.perf_counter()
-    fresh_run_id = st.session_state.get(f'{key}_run_id', 0)
+    saved = st.session_state.get(result_key)
+    if saved is None or saved[0] != settings_signature:
+        return
+    _, hist, pred = saved
+    if scenario:
+        seed = hist
     try:
-        with st.spinner('Generating forecast…'):
-            if method.startswith('Dedicated'):
-                hist, pred = long_term_lstm.forecast(name, _regular(observations(name)), int(hours))
-            elif scenario:
-                seed, pred = _cached_extended_forecast(
-                    name, model_revision(name), dataset_revision(name), int(hours),
-                    str(future_date), int(growth_pct), run_id=fresh_run_id)
-                hist = seed
-            else:
-                hist, pred = _cached_extended_forecast(
-                    name, model_revision(name), dataset_revision(name), int(hours),
-                    run_id=fresh_run_id)
-            # Keep the spinner visible briefly even when inference is very fast.
-            remaining = 1.5 - (time.perf_counter() - run_started)
-            if remaining > 0:
-                time.sleep(remaining)
-
         if scenario:
             st.markdown(f'<div class="ov-period"><strong>Prediction period · {hours} hours</strong> &nbsp; {pred.index[0]:%d %b %Y %H:%M} – {(pred.index[-1] + pd.Timedelta(minutes=15)):%d %b %Y %H:%M} (end exclusive)</div>', unsafe_allow_html=True)
             if method.startswith('Dedicated'):
